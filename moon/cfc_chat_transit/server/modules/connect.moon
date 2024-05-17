@@ -12,6 +12,7 @@ ChatTransit.PlayerConnect = (data) =>
         Type: "connect"
         Data:
             SteamName: name
+            NetworkId: steamId
             SteamId: steamId and SteamIDTo64 steamId
             PlayerCountCurrent: ChatTransit.playerCount
             PlayerCountMax: game\MaxPlayers!
@@ -21,6 +22,7 @@ ChatTransit.PlayerInitialSpawn = (ply) =>
         Type: "spawn"
         Data:
             SteamName: ply\Nick!
+            NetworkId: ply\SteamID!
             SteamId: ply\SteamID64!
 
 gameevent.Listen "player_connect"

@@ -2,30 +2,36 @@ require "gwsockets"
 require "logger"
 
 export ChatTransit = { Logger: Logger "ChatTransit" }
-include "cfc_chat_transit/server/avatar_service.lua"
 include "cfc_chat_transit/server/player_count.lua"
 
 import Read from file
 import GetColor from team
 import TableToJSON from util
+import JSONToTable from util
 
 logger = ChatTransit.Logger
 relayHost = CreateConVar "cfc_relay_host", "", FCVAR_NONE
+ChatTransit.Realm = CreateConVar "cfc_realm", "unknown", FCVAR_REPLICATED + FCVAR_ARCHIVE, "The Realm Name"
 
 loadHook = "ChatTransit_WebsocketLoad"
 hook.Add "Think", loadHook, ->
     hook.Remove "Think", loadHook
 
-    ChatTransit.WebSocket = GWSockets.createWebSocket "wss://#{relayHost\GetString!}/relay", false
-    ChatTransit.Realm = CreateConVar "cfc_realm", "unknown", FCVAR_REPLICATED + FCVAR_ARCHIVE, "The Realm Name"
+    ChatTransit.WebSocket = GWSockets.createWebSocket "#{relayHost\GetString!}/relay", false
 
     with ChatTransit.WebSocket
         .reconnectTimerName = "CFC_ChatTransit_WebsocketReconnect"
 
         .onMessage = (msg) =>
             if msg ~= "keepalive"
-                logger\info "Received a not-keepalive message from the server:", msg
-                return
+                resp = JSONToTable msg
+
+                if resp.Type == "message" and resp.Realm == ChatTransit.Realm\GetString!
+                    if resp.Data.DiscordName and resp.Data.Content
+                        RunConsoleCommand "chat_transit", resp.Data.DiscordName, "255, 255, 255, 255", resp.Data.Content
+                else
+                    logger\info "Received a not-keepalive message from the server:", msg
+                    return
 
             \write "keepalive"
 
@@ -53,7 +59,7 @@ ChatTransit.Send = (data) =>
     logger\debug "Sending '#{data.Type}'"
     steamID64 = data.Data.SteamId
 
-    data.Data.Avatar or= ChatTransit.AvatarService\getAvatar steamID64
+    data.Data.Avatar or= nil
     data.Realm = @Realm\GetString!
     data.Data.SteamId or= ""
 
