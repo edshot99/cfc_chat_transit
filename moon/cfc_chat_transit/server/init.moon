@@ -56,6 +56,8 @@ hook.Add "Think", loadHook, ->
     return nil
 
 ChatTransit.Send = (data) =>
+    hook.Run "CFC_ChatTransit_SendMessage", data
+
     logger\debug "Sending '#{data.Type}'"
     steamID64 = data.Data.SteamId
 
